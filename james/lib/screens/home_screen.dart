@@ -14,7 +14,7 @@ import 'calibration_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
-  final VoidCallback onSettingsChanged;
+  final Future<void> Function() onSettingsChanged;
   const HomeScreen({super.key, required this.settings, required this.onSettingsChanged});
 
   @override
@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: _armed ? const Color(0xFF0a2e0a) : const Color(0xFF0a0a1e),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        title: Text('${t('app_title')} v1.0.0',
+        title: Text('${t('app_title')} v1.1.0',
             style: const TextStyle(color: Colors.white70, fontSize: 16)),
         actions: [
           IconButton(

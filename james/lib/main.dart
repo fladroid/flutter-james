@@ -7,18 +7,31 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await AppSettings.load();
   await TranslationService.load(settings.language);
-  runApp(JamesApp(settings: settings));
+  runApp(JamesApp(initialSettings: settings));
 }
 
 class JamesApp extends StatefulWidget {
-  final AppSettings settings;
-  const JamesApp({super.key, required this.settings});
+  final AppSettings initialSettings;
+  const JamesApp({super.key, required this.initialSettings});
   @override
   State<JamesApp> createState() => _JamesAppState();
 }
 
 class _JamesAppState extends State<JamesApp> {
-  void _reload() => setState(() {});
+  late AppSettings _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _settings = widget.initialSettings;
+  }
+
+  Future<void> _reload() async {
+    // Reload settings from disk — picks up any changes (calibration, threshold, etc.)
+    final fresh = await AppSettings.load();
+    await TranslationService.load(fresh.language);
+    if (mounted) setState(() => _settings = fresh);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +44,7 @@ class _JamesAppState extends State<JamesApp> {
           secondary: Colors.greenAccent,
         ),
       ),
-      home: HomeScreen(settings: widget.settings, onSettingsChanged: _reload),
+      home: HomeScreen(settings: _settings, onSettingsChanged: _reload),
     );
   }
 }
