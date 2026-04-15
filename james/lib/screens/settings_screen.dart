@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../services/translation_service.dart';
+import 'calibration_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
@@ -36,9 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     for (final c in [_threshold, _cooldown, _whatGuarding, _ntfyUrl,
-        _ntfyToken, _telegramToken, _telegramChatId, _webhookUrl]) {
-      c.dispose();
-    }
+        _ntfyToken, _telegramToken, _telegramChatId, _webhookUrl]) c.dispose();
     super.dispose();
   }
 
@@ -59,6 +58,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _openCalibrator() async {
+    final result = await Navigator.push<double>(context,
+        MaterialPageRoute(builder: (_) =>
+            CalibrationScreen(settings: widget.settings)));
+    if (result != null) {
+      setState(() => _threshold.text = result.toStringAsFixed(2));
+    }
+  }
+
+  void _showBatteryOptDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a3e),
+        title: const Text('Battery Optimization',
+            style: TextStyle(color: Colors.orangeAccent)),
+        content: const SingleChildScrollView(
+          child: Text(
+            'For James to work reliably with the screen off, '
+            'disable battery optimization for this app.\n\n'
+            'Samsung One UI:\n'
+            '1. Settings → Apps → James\n'
+            '2. Battery → Unrestricted\n\n'
+            'Or:\n'
+            '1. Settings → Device care → Battery\n'
+            '2. App power management\n'
+            '3. Add James to "Never sleeping apps"\n\n'
+            'Without this, Samsung may stop James after a few minutes.',
+            style: TextStyle(color: Colors.white70, height: 1.6),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = TranslationService.t;
@@ -73,15 +113,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
         iconTheme: const IconThemeData(color: Colors.white54),
         actions: [
           TextButton(onPressed: _save,
-              child: Text(t('save'), style: const TextStyle(color: Colors.blueAccent))),
+              child: Text(t('save'),
+                  style: const TextStyle(color: Colors.blueAccent))),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+
+          // Battery optimization warning banner
+          GestureDetector(
+            onTap: _showBatteryOptDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orangeAccent.withOpacity(0.4)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.battery_alert, color: Colors.orangeAccent, size: 18),
+                SizedBox(width: 10),
+                Expanded(child: Text(
+                  'Disable battery optimization for reliable background operation',
+                  style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                )),
+                Icon(Icons.chevron_right, color: Colors.orangeAccent, size: 18),
+              ]),
+            ),
+          ),
+
           _section('General'),
           _field(t('what_guarding'), _whatGuarding, hint: t('what_guarding_hint')),
-          _field(t('threshold'), _threshold, keyboard: TextInputType.number),
+
+          // Threshold row with Calibrate button
+          _label(t('threshold')),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _threshold,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white70),
+                decoration: _inputDecoration(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                foregroundColor: Colors.blueAccent,
+                side: const BorderSide(color: Colors.blueAccent, width: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              ),
+              icon: const Icon(Icons.tune, size: 16),
+              label: const Text('Calibrate', style: TextStyle(fontSize: 13)),
+              onPressed: _openCalibrator,
+            ),
+          ]),
+          const SizedBox(height: 12),
+
           _field(t('cooldown'), _cooldown, keyboard: TextInputType.number),
           const SizedBox(height: 8),
           _label(t('language')),
@@ -90,9 +181,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             dropdownColor: const Color(0xFF1a1a3e),
             style: const TextStyle(color: Colors.white70),
             isExpanded: true,
-            items: langs.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+            items: langs.map((l) => DropdownMenuItem(value: l,
+                child: Text(l))).toList(),
             onChanged: (v) => setState(() => _lang = v!),
           ),
+
           const SizedBox(height: 16),
           _section(t('notification_channel')),
           DropdownButton<String>(
@@ -101,9 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: const TextStyle(color: Colors.white70),
             isExpanded: true,
             items: channels.map((c) => DropdownMenuItem(
-              value: c,
-              child: Text(t('channel_$c')),
-            )).toList(),
+              value: c, child: Text(t('channel_$c')))).toList(),
             onChanged: (v) => setState(() => _channel = v!),
           ),
           const SizedBox(height: 8),
@@ -134,6 +225,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     child: Text(text, style: const TextStyle(color: Colors.white54, fontSize: 13)),
   );
 
+  InputDecoration _inputDecoration({String? hint}) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(color: Colors.white24),
+    filled: true,
+    fillColor: Colors.white.withOpacity(0.05),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+    ),
+  );
+
   Widget _field(String label, TextEditingController ctrl,
       {String? hint, TextInputType? keyboard, bool obscure = false}) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
@@ -144,20 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         obscureText: obscure,
         keyboardType: keyboard,
         style: const TextStyle(color: Colors.white70),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white24),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-        ),
+        decoration: _inputDecoration(hint: hint),
       ),
     ]),
   );
