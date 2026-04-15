@@ -100,6 +100,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
   Future<void> _apply() async {
     if (_suggested == null) return;
     widget.settings.threshold = _suggested!;
+    widget.settings.isCalibrated = true;
     await widget.settings.save();
     if (mounted) Navigator.pop(context, _suggested);
   }

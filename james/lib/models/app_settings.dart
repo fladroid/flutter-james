@@ -11,9 +11,10 @@ class AppSettings {
   String telegramChatId;
   String webhookUrl;
   String language;
+  bool isCalibrated;
 
   AppSettings({
-    this.threshold = 0.8,
+    this.threshold = 0.25,
     this.cooldownSeconds = 30,
     this.whatGuarding = '',
     this.notificationChannel = 'ntfy',
@@ -23,12 +24,13 @@ class AppSettings {
     this.telegramChatId = '',
     this.webhookUrl = '',
     this.language = 'en',
+    this.isCalibrated = false,
   });
 
   static Future<AppSettings> load() async {
     final p = await SharedPreferences.getInstance();
     return AppSettings(
-      threshold: p.getDouble('threshold') ?? 0.8,
+      threshold: p.getDouble('threshold') ?? 0.25,
       cooldownSeconds: p.getInt('cooldown_seconds') ?? 30,
       whatGuarding: p.getString('what_guarding') ?? '',
       notificationChannel: p.getString('notification_channel') ?? 'ntfy',
@@ -38,6 +40,7 @@ class AppSettings {
       telegramChatId: p.getString('telegram_chat_id') ?? '',
       webhookUrl: p.getString('webhook_url') ?? '',
       language: p.getString('language') ?? 'en',
+      isCalibrated: p.getBool('is_calibrated') ?? false,
     );
   }
 
@@ -53,5 +56,6 @@ class AppSettings {
     await p.setString('telegram_chat_id', telegramChatId);
     await p.setString('webhook_url', webhookUrl);
     await p.setString('language', language);
+    await p.setBool('is_calibrated', isCalibrated);
   }
 }

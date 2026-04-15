@@ -10,6 +10,7 @@ import '../services/notification_service.dart';
 import '../services/translation_service.dart';
 import 'settings_screen.dart';
 import 'sensor_screen.dart';
+import 'calibration_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppSettings settings;
@@ -188,6 +189,34 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(t('guarding_label', params: {'what': s.whatGuarding}),
               style: const TextStyle(color: Colors.white38, fontSize: 13)),
         ],
+        // Not calibrated warning
+        if (!widget.settings.isCalibrated)
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(context,
+                  MaterialPageRoute(builder: (_) =>
+                      CalibrationScreen(settings: widget.settings)));
+              widget.onSettingsChanged();
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orangeAccent.withOpacity(0.5)),
+              ),
+              child: const Row(children: [
+                Icon(Icons.tune, color: Colors.orangeAccent, size: 16),
+                SizedBox(width: 8),
+                Expanded(child: Text(
+                  'Device not calibrated — using default threshold (0.25 m/s²). Tap to calibrate.',
+                  style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                )),
+                Icon(Icons.chevron_right, color: Colors.orangeAccent, size: 16),
+              ]),
+            ),
+          ),
         if (_armed)
           Padding(
             padding: const EdgeInsets.only(top: 8),
