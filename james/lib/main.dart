@@ -27,7 +27,6 @@ class _JamesAppState extends State<JamesApp> {
   }
 
   Future<void> _reload() async {
-    // Reload settings from disk — picks up any changes (calibration, threshold, etc.)
     final fresh = await AppSettings.load();
     await TranslationService.load(fresh.language);
     if (mounted) setState(() => _settings = fresh);

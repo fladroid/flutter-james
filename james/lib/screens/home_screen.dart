@@ -21,21 +21,26 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _methodChannel = MethodChannel('com.fladroid.james/service');
-  static const _eventChannel = EventChannel('com.fladroid.james/intrusion');
 
   bool _armed = false;
   double _magnitude = 0.0;
-  StreamSubscription? _intrusionSub;
+  DateTime? _lastAlert;
+  StreamSubscription? _sensorSub;
   StreamSubscription? _sensorDisplaySub;
   final List<EventEntry> _events = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkServiceRunning();
-    // Live magnitude display only (lightweight, stops when screen off — OK for display)
+    _startDisplaySensor();
+  }
+
+  void _startDisplaySensor() {
+    _sensorDisplaySub?.cancel();
     _sensorDisplaySub = userAccelerometerEventStream(
       samplingPeriod: const Duration(milliseconds: 300),
     ).listen((e) {
@@ -53,47 +58,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _arm() async {
     final s = widget.settings;
+    // Start keepalive ForegroundService (WakeLock)
     try {
-      await _methodChannel.invokeMethod('startService', {
-        'threshold': s.threshold,
-        'cooldown': s.cooldownSeconds,
-        'ntfy_url': s.ntfyUrl,
-        'ntfy_token': s.ntfyToken,
-        'telegram_token': s.telegramToken,
-        'telegram_chat_id': s.telegramChatId,
-        'webhook_url': s.webhookUrl,
-        'notification_channel': s.notificationChannel,
-        'what_guarding': s.whatGuarding,
-      });
-      // Save armed state for boot autostart
+      await _methodChannel.invokeMethod('startService');
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('autostart_on_boot', true);
     } catch (e) {
-      _showError('ForegroundService error: $e');
+      _showError('Service error: $e');
       return;
     }
-    // Listen for intrusion events from native service
-    _intrusionSub = _eventChannel.receiveBroadcastStream().listen((mag) {
-      _onIntrusion((mag as double));
-    });
+    // Start sensor monitoring in Flutter
+    _sensorSub?.cancel();
+    _sensorSub = userAccelerometerEventStream(
+      samplingPeriod: const Duration(milliseconds: 500),
+    ).listen(_onSensor);
+
     setState(() => _armed = true);
     _addEvent(EventType.armed);
+    await NotificationService.sendArmed(s);
   }
 
   Future<void> _disarm() async {
+    _sensorSub?.cancel();
+    _sensorSub = null;
     try {
       await _methodChannel.invokeMethod('stopService');
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('autostart_on_boot', false);
     } catch (_) {}
-    _intrusionSub?.cancel();
-    _intrusionSub = null;
     setState(() => _armed = false);
     _addEvent(EventType.disarmed);
+    await NotificationService.sendDisarmed(widget.settings);
   }
 
-  void _onIntrusion(double mag) {
-    _addEvent(EventType.intrusion, magnitude: mag);
+  void _onSensor(UserAccelerometerEvent e) {
+    final mag = sqrt(e.x*e.x + e.y*e.y + e.z*e.z);
+    if (!_armed) return;
+    final s = widget.settings;
+    if (mag > s.threshold) {
+      final now = DateTime.now();
+      final cooldown = Duration(seconds: s.cooldownSeconds);
+      if (_lastAlert == null || now.difference(_lastAlert!) >= cooldown) {
+        _lastAlert = now;
+        _addEvent(EventType.intrusion, magnitude: mag);
+        NotificationService.sendIntrusion(s, mag);
+      }
+    }
   }
 
   void _addEvent(EventType type, {double? magnitude}) {
@@ -113,7 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _intrusionSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _sensorSub?.cancel();
     _sensorDisplaySub?.cancel();
     super.dispose();
   }
@@ -127,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: _armed ? const Color(0xFF0a2e0a) : const Color(0xFF0a0a1e),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        title: Text('${t('app_title')} v1.2.4',
+        title: Text('${t('app_title')} v1.2.5',
             style: const TextStyle(color: Colors.white70, fontSize: 16)),
         actions: [
           IconButton(
@@ -140,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () async {
               await Navigator.push(context,
                   MaterialPageRoute(builder: (_) => SettingsScreen(settings: s)));
-              widget.onSettingsChanged();
+              await widget.onSettingsChanged();
             },
           ),
         ],
@@ -157,15 +168,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: BoxShape.circle,
                 color: _armed ? const Color(0xFF1a5c1a) : const Color(0xFF1a1a3e),
                 border: Border.all(
-                    color: _armed ? Colors.greenAccent : Colors.blueAccent, width: 3),
+                    color: _armed ? Colors.greenAccent : Colors.blueAccent,
+                    width: 3),
                 boxShadow: [BoxShadow(
-                  color: (_armed ? Colors.greenAccent : Colors.blueAccent).withOpacity(0.3),
+                  color: (_armed ? Colors.greenAccent : Colors.blueAccent)
+                      .withOpacity(0.3),
                   blurRadius: 30, spreadRadius: 5,
                 )],
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(_armed ? Icons.lock : Icons.lock_open,
-                    color: _armed ? Colors.greenAccent : Colors.blueAccent, size: 48),
+                    color: _armed ? Colors.greenAccent : Colors.blueAccent,
+                    size: 48),
                 const SizedBox(height: 8),
                 Text(_armed ? t('armed') : t('disarmed'),
                     style: TextStyle(
@@ -193,14 +207,24 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(t('guarding_label', params: {'what': s.whatGuarding}),
               style: const TextStyle(color: Colors.white38, fontSize: 13)),
         ],
+        if (_armed)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.circle, color: Colors.greenAccent, size: 8),
+              const SizedBox(width: 6),
+              const Text('Active — WakeLock on',
+                  style: TextStyle(color: Colors.white38, fontSize: 11)),
+            ]),
+          ),
         // Not calibrated warning
-        if (!widget.settings.isCalibrated)
+        if (!s.isCalibrated)
           GestureDetector(
             onTap: () async {
               await Navigator.push(context,
                   MaterialPageRoute(builder: (_) =>
-                      CalibrationScreen(settings: widget.settings)));
-              widget.onSettingsChanged();
+                      CalibrationScreen(settings: s)));
+              await widget.onSettingsChanged();
             },
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -214,24 +238,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(Icons.tune, color: Colors.orangeAccent, size: 16),
                 SizedBox(width: 8),
                 Expanded(child: Text(
-                  'Device not calibrated — using default threshold (0.25 m/s²). Tap to calibrate.',
+                  'Device not calibrated — using default 0.25 m/s². Tap to calibrate.',
                   style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
                 )),
                 Icon(Icons.chevron_right, color: Colors.orangeAccent, size: 16),
               ]),
             ),
           ),
-        if (_armed)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.circle, color: Colors.greenAccent, size: 8),
-              const SizedBox(width: 6),
-              Text('ForegroundService active',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ]),
-          ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         Expanded(
           child: _events.isEmpty
               ? Center(child: Text(t('events_empty'),
@@ -270,9 +284,11 @@ class _EventTile extends StatelessWidget {
         Icon(icon, color: color, size: 18),
         const SizedBox(width: 10),
         Text(event.timeString,
-            style: const TextStyle(color: Colors.white38, fontSize: 12, fontFamily: 'monospace')),
+            style: const TextStyle(color: Colors.white38, fontSize: 12,
+                fontFamily: 'monospace')),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: TextStyle(color: color, fontSize: 13))),
+        Expanded(child: Text(label,
+            style: TextStyle(color: color, fontSize: 13))),
       ]),
     );
   }
