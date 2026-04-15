@@ -9,6 +9,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.IBinder
 import android.os.PowerManager
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.*
 import java.net.HttpURLConnection
@@ -78,7 +79,10 @@ class JamesService : Service(), SensorEventListener {
         channel = intent?.getStringExtra(EXTRA_CHANNEL) ?: "ntfy"
         whatGuarding = intent?.getStringExtra(EXTRA_WHAT_GUARDING) ?: ""
 
-        startForeground(NOTIF_ID, buildNotification("Armed 🔒"))
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q)
+            startForeground(NOTIF_ID, buildNotification("Armed 🔒"), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        else
+            startForeground(NOTIF_ID, buildNotification("Armed 🔒"))
         if (!wakeLock.isHeld) wakeLock.acquire()
         sensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
