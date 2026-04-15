@@ -85,6 +85,13 @@ class JamesService : Service(), SensorEventListener {
         }
         isRunning = true
 
+        // Debug log — what did we receive?
+        android.util.Log.d("James", "=== SERVICE START ===")
+        android.util.Log.d("James", "channel=$channel")
+        android.util.Log.d("James", "ntfyUrl=$ntfyUrl")
+        android.util.Log.d("James", "ntfyToken=${if (ntfyToken.isNotEmpty()) "SET(${ntfyToken.length}ch)" else "EMPTY"}")
+        android.util.Log.d("James", "threshold=$threshold cooldown=${cooldownMs}ms")
+
         // Send armed notification directly from Kotlin
         val guardMsg = if (whatGuarding.isNotEmpty()) " · $whatGuarding" else ""
         sendAlert("James Armed 🔒$guardMsg", "low", "lock")
@@ -148,7 +155,8 @@ class JamesService : Service(), SensorEventListener {
     }
 
     private fun sendNtfy(message: String, priority: String, tags: String) {
-        if (ntfyUrl.isEmpty()) return
+        android.util.Log.d("James", "sendNtfy: url=$ntfyUrl token=${if (ntfyToken.isNotEmpty()) "SET" else "EMPTY"} msg=$message")
+        if (ntfyUrl.isEmpty()) { android.util.Log.w("James", "ntfyUrl EMPTY — skip"); return }
         val conn = URL(ntfyUrl).openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
         conn.connectTimeout = 5000
