@@ -20,10 +20,7 @@ class MainActivity : FlutterActivity() {
                         val intent = Intent(this, JamesService::class.java).apply {
                             action = JamesService.ACTION_START
                         }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                            startForegroundService(intent)
-                        else
-                            startService(intent)
+                        startService(intent)
                         result.success(true)
                     }
                     "stopService" -> {
