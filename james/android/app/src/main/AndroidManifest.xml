@@ -30,7 +30,6 @@
 
         <service
             android:name=".JamesService"
-            android:foregroundServiceType="dataSync"
             android:exported="false" />
 
         <receiver
