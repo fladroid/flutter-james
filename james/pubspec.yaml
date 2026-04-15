@@ -1,0 +1,28 @@
+name: james
+description: "James — Motion Guard. Detects unauthorized device movement and sends alerts."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  sensors_plus: ^6.1.0
+  http: ^1.2.0
+  shared_preferences: ^2.3.0
+  flutter_local_notifications: ^18.0.0
+  permission_handler: ^11.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/config.json

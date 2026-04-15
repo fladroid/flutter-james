@@ -1,0 +1,6 @@
+james/build/
+james/.dart_tool/
+james/.flutter-plugins
+james/.flutter-plugins-dependencies
+*.iml
+*.log
