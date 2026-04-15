@@ -58,6 +58,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _arm() async {
     final s = widget.settings;
+    // Validate notification config before arming
+    String configError = '';
+    if (s.notificationChannel == 'ntfy' && s.ntfyUrl.isEmpty) {
+      configError = 'ntfy URL is empty — configure in Settings';
+    } else if (s.notificationChannel == 'telegram' &&
+        (s.telegramToken.isEmpty || s.telegramChatId.isEmpty)) {
+      configError = 'Telegram token or chat ID is empty — configure in Settings';
+    } else if (s.notificationChannel == 'webhook' && s.webhookUrl.isEmpty) {
+      configError = 'Webhook URL is empty — configure in Settings';
+    }
+    if (configError.isNotEmpty) {
+      _showError(configError);
+      return;
+    }
+
     // Start keepalive ForegroundService (WakeLock)
     try {
       await _methodChannel.invokeMethod('startService');
@@ -138,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       backgroundColor: _armed ? const Color(0xFF0a2e0a) : const Color(0xFF0a0a1e),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        title: Text('${t('app_title')} v1.2.7',
+        title: Text('${t('app_title')} v1.2.8',
             style: const TextStyle(color: Colors.white70, fontSize: 16)),
         actions: [
           IconButton(
