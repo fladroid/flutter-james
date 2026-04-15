@@ -14,24 +14,36 @@ class MainActivity : FlutterActivity() {
 
     private val METHOD_CHANNEL = "com.fladroid.james/service"
     private val EVENT_CHANNEL = "com.fladroid.james/intrusion"
-
     private var eventSink: EventChannel.EventSink? = null
     private var receiver: BroadcastReceiver? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // MethodChannel — start/stop service
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startService" -> {
-                        val threshold = call.argument<Double>("threshold")?.toFloat() ?: 0.25f
-                        val cooldown = call.argument<Int>("cooldown") ?: 30
                         val intent = Intent(this, JamesService::class.java).apply {
                             action = JamesService.ACTION_START
-                            putExtra(JamesService.EXTRA_THRESHOLD, threshold)
-                            putExtra(JamesService.EXTRA_COOLDOWN, cooldown)
+                            putExtra(JamesService.EXTRA_THRESHOLD,
+                                call.argument<Double>("threshold")?.toFloat() ?: 0.25f)
+                            putExtra(JamesService.EXTRA_COOLDOWN,
+                                call.argument<Int>("cooldown") ?: 30)
+                            putExtra(JamesService.EXTRA_NTFY_URL,
+                                call.argument<String>("ntfy_url") ?: "")
+                            putExtra(JamesService.EXTRA_NTFY_TOKEN,
+                                call.argument<String>("ntfy_token") ?: "")
+                            putExtra(JamesService.EXTRA_TELEGRAM_TOKEN,
+                                call.argument<String>("telegram_token") ?: "")
+                            putExtra(JamesService.EXTRA_TELEGRAM_CHAT_ID,
+                                call.argument<String>("telegram_chat_id") ?: "")
+                            putExtra(JamesService.EXTRA_WEBHOOK_URL,
+                                call.argument<String>("webhook_url") ?: "")
+                            putExtra(JamesService.EXTRA_CHANNEL,
+                                call.argument<String>("notification_channel") ?: "ntfy")
+                            putExtra(JamesService.EXTRA_WHAT_GUARDING,
+                                call.argument<String>("what_guarding") ?: "")
                         }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                             startForegroundService(intent)
@@ -39,10 +51,9 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                     "stopService" -> {
-                        val intent = Intent(this, JamesService::class.java).apply {
+                        startService(Intent(this, JamesService::class.java).apply {
                             action = JamesService.ACTION_STOP
-                        }
-                        startService(intent)
+                        })
                         result.success(true)
                     }
                     "isRunning" -> result.success(JamesService.isRunning)
@@ -50,7 +61,6 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // EventChannel — intrusion events from service → Flutter
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, EVENT_CHANNEL)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(args: Any?, sink: EventChannel.EventSink?) {

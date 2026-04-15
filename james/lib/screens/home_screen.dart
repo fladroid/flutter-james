@@ -57,6 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
       await _methodChannel.invokeMethod('startService', {
         'threshold': s.threshold,
         'cooldown': s.cooldownSeconds,
+        'ntfy_url': s.ntfyUrl,
+        'ntfy_token': s.ntfyToken,
+        'telegram_token': s.telegramToken,
+        'telegram_chat_id': s.telegramChatId,
+        'webhook_url': s.webhookUrl,
+        'notification_channel': s.notificationChannel,
+        'what_guarding': s.whatGuarding,
       });
       // Save armed state for boot autostart
       final prefs = await SharedPreferences.getInstance();
@@ -71,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     setState(() => _armed = true);
     _addEvent(EventType.armed);
-    await NotificationService.sendArmed(s);
   }
 
   Future<void> _disarm() async {
@@ -84,12 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _intrusionSub = null;
     setState(() => _armed = false);
     _addEvent(EventType.disarmed);
-    await NotificationService.sendDisarmed(widget.settings);
   }
 
   void _onIntrusion(double mag) {
     _addEvent(EventType.intrusion, magnitude: mag);
-    NotificationService.sendIntrusion(widget.settings, mag);
   }
 
   void _addEvent(EventType type, {double? magnitude}) {
@@ -123,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: _armed ? const Color(0xFF0a2e0a) : const Color(0xFF0a0a1e),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        title: Text('${t('app_title')} v1.1.0',
+        title: Text('${t('app_title')} v1.2.0',
             style: const TextStyle(color: Colors.white70, fontSize: 16)),
         actions: [
           IconButton(
