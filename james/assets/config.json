@@ -1,6 +1,6 @@
 {
   "default_settings": {
-    "threshold": 0.8,
+    "threshold": 0.25,
     "cooldown_seconds": 30,
     "what_guarding": "",
     "notification_channel": "ntfy",

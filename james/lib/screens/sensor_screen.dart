@@ -102,8 +102,9 @@ class _SensorScreenState extends State<SensorScreen> {
             ),
             child: const Text(
               'Tip: Shake the device to see peak values.\n'
-              'linear_acceleration > 0.8 m/s² triggers James alert.\n'
-              'Adjust threshold in Settings based on observed values.',
+              'Observe magnitude at rest (should be < 0.01).\n'
+              'Set threshold between resting noise and lightest expected movement.\n'
+              'Recommended: 0.25 m/s² (tested on Samsung tablets).',
               style: TextStyle(color: Colors.white38, fontSize: 12),
             ),
           ),
