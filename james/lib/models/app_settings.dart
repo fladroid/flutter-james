@@ -12,6 +12,8 @@ class AppSettings {
   String webhookUrl;
   String language;
   bool isCalibrated;
+  String fontSize;    // 'small' | 'medium' | 'large'
+  String contrast;    // 'normal' | 'high'
 
   AppSettings({
     this.threshold = 0.25,
@@ -25,6 +27,8 @@ class AppSettings {
     this.webhookUrl = '',
     this.language = 'en',
     this.isCalibrated = false,
+    this.fontSize = 'medium',
+    this.contrast = 'normal',
   });
 
   static Future<AppSettings> load() async {
@@ -41,6 +45,8 @@ class AppSettings {
       webhookUrl: p.getString('webhook_url') ?? '',
       language: p.getString('language') ?? 'en',
       isCalibrated: p.getBool('is_calibrated') ?? false,
+      fontSize: p.getString('font_size') ?? 'medium',
+      contrast: p.getString('contrast') ?? 'normal',
     );
   }
 
@@ -57,5 +63,7 @@ class AppSettings {
     await p.setString('webhook_url', webhookUrl);
     await p.setString('language', language);
     await p.setBool('is_calibrated', isCalibrated);
+    await p.setString('font_size', fontSize);
+    await p.setString('contrast', contrast);
   }
 }

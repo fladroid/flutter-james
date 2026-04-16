@@ -158,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: Text('${t('app_title')} v1.2.8',
+        title: Text('${t('app_title')} v1.2.9',
             style: TextStyle(color: _theme.inkMedium, fontSize: 16)),
         actions: [
           IconButton(

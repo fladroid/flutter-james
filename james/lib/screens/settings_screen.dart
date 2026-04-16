@@ -19,6 +19,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _webhookUrl;
   late String _channel;
   late String _lang;
+  late String _fontSize;
+  late String _contrast;
 
   @override
   void initState() {
@@ -32,8 +34,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _telegramToken  = TextEditingController(text: s.telegramToken);
     _telegramChatId = TextEditingController(text: s.telegramChatId);
     _webhookUrl   = TextEditingController(text: s.webhookUrl);
-    _channel = s.notificationChannel;
-    _lang    = s.language;
+    _channel  = s.notificationChannel;
+    _lang     = s.language;
+    _fontSize = s.fontSize;
+    _contrast = s.contrast;
   }
 
   @override
@@ -55,6 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     s.telegramChatId  = _telegramChatId.text;
     s.webhookUrl      = _webhookUrl.text;
     s.language        = _lang;
+    s.fontSize        = _fontSize;
+    s.contrast        = _contrast;
     await s.save();
     await TranslationService.load(_lang);
     if (mounted) Navigator.pop(context);
@@ -94,7 +100,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK', style: TextStyle(color: _theme.accent, fontSize: _theme.bodySize)),
+            child: Text('OK', style: TextStyle(
+                color: _theme.accent, fontSize: _theme.bodySize)),
           ),
         ],
       ),
@@ -128,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
 
-          // Battery optimization warning banner
+          // Battery optimization warning
           GestureDetector(
             onTap: _showBatteryOptDialog,
             child: Container(
@@ -151,6 +158,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
+          // ── DISPLAY ─────────────────────────────────────────
+          _section('Display'),
+
+          _label('Font size'),
+          const SizedBox(height: 6),
+          _SegmentedRow(
+            options: const ['small', 'medium', 'large'],
+            labels: const ['Small', 'Medium', 'Large'],
+            selected: _fontSize,
+            theme: _theme,
+            onChanged: (v) => setState(() => _fontSize = v),
+          ),
+          const SizedBox(height: 16),
+
+          _label('Contrast'),
+          const SizedBox(height: 6),
+          _SegmentedRow(
+            options: const ['normal', 'high'],
+            labels: const ['Normal', 'High contrast'],
+            selected: _contrast,
+            theme: _theme,
+            onChanged: (v) => setState(() => _contrast = v),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Changes take effect after saving and reopening the app.',
+            style: TextStyle(color: _theme.inkFaint, fontSize: _theme.captionSize),
+          ),
+
+          // ── GENERAL ─────────────────────────────────────────
           _section('General'),
           _field(t('what_guarding'), _whatGuarding, hint: t('what_guarding_hint')),
 
@@ -193,6 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (v) => setState(() => _lang = v!),
           ),
 
+          // ── NOTIFICATION ─────────────────────────────────────
           const SizedBox(height: 16),
           _section(t('notification_channel')),
           DropdownButton<String>(
@@ -266,4 +304,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     ]),
   );
+}
+
+// Segmented row widget — tri ili dva dugmeta kao toggle grupa
+class _SegmentedRow extends StatelessWidget {
+  final List<String> options;
+  final List<String> labels;
+  final String selected;
+  final AppTheme theme;
+  final void Function(String) onChanged;
+
+  const _SegmentedRow({
+    required this.options,
+    required this.labels,
+    required this.selected,
+    required this.theme,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(options.length, (i) {
+        final isSelected = options[i] == selected;
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(options[i]),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              margin: EdgeInsets.only(
+                left: i == 0 ? 0 : 4,
+                right: i == options.length - 1 ? 0 : 4,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected ? theme.accent : theme.surface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isSelected ? theme.accent : theme.border,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Text(
+                labels[i],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? theme.accentText : theme.inkMedium,
+                  fontSize: theme.captionSize + 1,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
 }

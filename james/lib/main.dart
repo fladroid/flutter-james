@@ -8,6 +8,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await AppSettings.load();
   await TranslationService.load(settings.language);
+  AppTheme().init(settings.fontSize, settings.contrast);
   runApp(JamesApp(initialSettings: settings));
 }
 
@@ -31,6 +32,7 @@ class _JamesAppState extends State<JamesApp> {
   Future<void> _reload() async {
     final fresh = await AppSettings.load();
     await TranslationService.load(fresh.language);
+    AppTheme().init(fresh.fontSize, fresh.contrast);
     if (mounted) setState(() => _settings = fresh);
   }
 
