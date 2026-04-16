@@ -19,6 +19,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "james"
+            keyPassword = "fladroid2024"
+            storeFile = file("/home/balsam/flutter-james/james-keystore.jks")
+            storePassword = "fladroid2024"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.fladroid.james"
         minSdk = 33
@@ -29,7 +38,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
