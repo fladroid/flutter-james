@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../models/app_settings.dart';
+import '../services/app_theme.dart';
 
 enum PhaseState { idle, measuring, done }
 
@@ -16,18 +17,17 @@ class CalibrationScreen extends StatefulWidget {
 class _CalibrationScreenState extends State<CalibrationScreen>
     with SingleTickerProviderStateMixin {
 
+  final _theme = AppTheme();
   late AnimationController _progressCtrl;
   StreamSubscription? _sensorSub;
   PhaseState _measuring = PhaseState.idle;
-  int _activePhase = -1; // 0=rest, 1=gentle, 2=strong
+  int _activePhase = -1;
 
-  // Results per phase — null = not yet measured
   double? _restMax;
   double? _gentleMin, _gentleMax;
   double? _strongMin, _strongMax;
   double? _suggested;
 
-  // Live magnitude during measurement
   double _liveMag = 0;
   final List<double> _samples = [];
 
@@ -80,7 +80,6 @@ class _CalibrationScreenState extends State<CalibrationScreen>
       }
       _measuring = PhaseState.done;
       _liveMag = 0;
-      // Recalculate suggestion if all phases done
       if (_restMax != null && _gentleMin != null && _strongMin != null) {
         _calculateSuggested();
       }
@@ -107,23 +106,29 @@ class _CalibrationScreenState extends State<CalibrationScreen>
 
   bool get _allDone => _restMax != null && _gentleMin != null && _strongMin != null;
 
+  // Boje po fazama — dovoljno distinktivne na bijeloj pozadini
+  Color get _restColor   => const Color(0xFFE65100);   // tamna narančasta
+  Color get _gentleColor => const Color(0xFFF9A825);   // jantarna
+  Color get _strongColor => _theme.accent;              // zelena (Tracker akcent)
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1e),
+      backgroundColor: _theme.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        title: const Text('Calibrator',
-            style: TextStyle(color: Colors.white70)),
-        iconTheme: const IconThemeData(color: Colors.white54),
+        backgroundColor: _theme.background,
+        elevation: 0,
+        title: Text('Calibrator',
+            style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize + 2)),
+        iconTheme: IconThemeData(color: _theme.inkMedium),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
+          Text(
             'Measure each phase separately.\nRepeat any phase if needed.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+            style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize, height: 1.5),
           ),
           const SizedBox(height: 24),
 
@@ -132,14 +137,15 @@ class _CalibrationScreenState extends State<CalibrationScreen>
             icon: '🛑',
             label: 'RESTING',
             instruction: 'Leave device completely still',
-            color: Colors.orangeAccent,
-            resultLabel: _restMax == null ? null : 'Peak noise: ${_restMax!.toStringAsFixed(4)} m/s²',
+            color: _restColor,
+            resultLabel: _restMax == null ? null
+                : 'Peak noise: ${_restMax!.toStringAsFixed(4)} m/s²',
             isActive: _activePhase == 0 && _measuring == PhaseState.measuring,
             liveMag: _activePhase == 0 ? _liveMag : 0,
             progress: _activePhase == 0 ? _progressCtrl : null,
             onStart: _measuring == PhaseState.measuring ? null : () => _startPhase(0),
+            theme: _theme,
           ),
-
           const SizedBox(height: 12),
 
           _PhaseCard(
@@ -147,15 +153,15 @@ class _CalibrationScreenState extends State<CalibrationScreen>
             icon: '🤏',
             label: 'GENTLE MOVEMENT',
             instruction: 'Move device very gently\nAs if carefully lifting it',
-            color: Colors.yellowAccent,
+            color: _gentleColor,
             resultLabel: _gentleMin == null ? null
                 : 'Min: ${_gentleMin!.toStringAsFixed(4)}  Peak: ${_gentleMax!.toStringAsFixed(4)} m/s²',
             isActive: _activePhase == 1 && _measuring == PhaseState.measuring,
             liveMag: _activePhase == 1 ? _liveMag : 0,
             progress: _activePhase == 1 ? _progressCtrl : null,
             onStart: _measuring == PhaseState.measuring ? null : () => _startPhase(1),
+            theme: _theme,
           ),
-
           const SizedBox(height: 12),
 
           _PhaseCard(
@@ -163,33 +169,33 @@ class _CalibrationScreenState extends State<CalibrationScreen>
             icon: '💥',
             label: 'CLEAR MOVEMENT',
             instruction: 'Move device clearly and firmly\nAs an intruder would',
-            color: Colors.greenAccent,
+            color: _strongColor,
             resultLabel: _strongMin == null ? null
                 : 'Min: ${_strongMin!.toStringAsFixed(4)}  Peak: ${_strongMax!.toStringAsFixed(4)} m/s²',
             isActive: _activePhase == 2 && _measuring == PhaseState.measuring,
             liveMag: _activePhase == 2 ? _liveMag : 0,
             progress: _activePhase == 2 ? _progressCtrl : null,
             onStart: _measuring == PhaseState.measuring ? null : () => _startPhase(2),
+            theme: _theme,
           ),
 
           const SizedBox(height: 28),
 
-          // Result box — appears when all phases done
           if (_allDone && _suggested != null) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.15),
+                color: _theme.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+                border: Border.all(color: _theme.accent.withOpacity(0.5), width: 1.5),
               ),
               child: Column(children: [
-                const Text('Suggested threshold',
-                    style: TextStyle(color: Colors.white54, fontSize: 13)),
+                Text('Suggested threshold',
+                    style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize)),
                 const SizedBox(height: 8),
                 Text('${_suggested!.toStringAsFixed(2)} m/s²',
-                    style: const TextStyle(
-                      color: Colors.blueAccent, fontSize: 40,
+                    style: TextStyle(
+                      color: _theme.accent, fontSize: 40,
                       fontFamily: 'monospace', fontWeight: FontWeight.bold,
                     )),
                 const SizedBox(height: 4),
@@ -198,9 +204,8 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                       ? '✅ Will catch gentle movement'
                       : '⚠️ May miss gentle movement — remeasure',
                   style: TextStyle(
-                    color: _suggested! < _gentleMin!
-                        ? Colors.greenAccent : Colors.orangeAccent,
-                    fontSize: 12,
+                    color: _suggested! < _gentleMin! ? _theme.accent : _restColor,
+                    fontSize: _theme.captionSize,
                   ),
                 ),
               ]),
@@ -208,15 +213,15 @@ class _CalibrationScreenState extends State<CalibrationScreen>
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.greenAccent,
-                foregroundColor: Colors.black,
+                backgroundColor: _theme.accent,
+                foregroundColor: _theme.accentText,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: _apply,
-              child: const Text('Apply & Save',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text('Apply & Save',
+                  style: TextStyle(fontSize: _theme.bodySize, fontWeight: FontWeight.bold)),
             ),
           ],
 
@@ -228,7 +233,7 @@ class _CalibrationScreenState extends State<CalibrationScreen>
                 '${_gentleMin == null ? '○' : '✓'} Gentle  '
                 '${_strongMin == null ? '○' : '✓'} Strong',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white24, fontSize: 13),
+                style: TextStyle(color: _theme.inkFaint, fontSize: _theme.bodySize),
               ),
             ),
 
@@ -248,12 +253,13 @@ class _PhaseCard extends StatelessWidget {
   final double liveMag;
   final AnimationController? progress;
   final VoidCallback? onStart;
+  final AppTheme theme;
 
   const _PhaseCard({
     required this.phase, required this.icon, required this.label,
     required this.instruction, required this.color,
     this.resultLabel, required this.isActive, required this.liveMag,
-    this.progress, this.onStart,
+    this.progress, this.onStart, required this.theme,
   });
 
   @override
@@ -261,12 +267,10 @@ class _PhaseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isActive
-            ? color.withOpacity(0.12)
-            : color.withOpacity(0.05),
+        color: isActive ? color.withOpacity(0.08) : theme.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isActive ? color.withOpacity(0.6) : color.withOpacity(0.2),
+          color: isActive ? color.withOpacity(0.7) : color.withOpacity(0.35),
           width: isActive ? 2 : 1,
         ),
       ),
@@ -278,32 +282,28 @@ class _PhaseCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(
-                  color: color, fontSize: 13, fontWeight: FontWeight.bold,
-                  letterSpacing: 1)),
-              Text(instruction, style: const TextStyle(
-                  color: Colors.white38, fontSize: 12, height: 1.4)),
+                  color: color, fontSize: theme.captionSize + 1,
+                  fontWeight: FontWeight.bold, letterSpacing: 1)),
+              Text(instruction, style: TextStyle(
+                  color: theme.inkMedium, fontSize: theme.captionSize, height: 1.4)),
             ],
           )),
-          // Measure button
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isActive
-                  ? color.withOpacity(0.3)
-                  : color.withOpacity(0.15),
+              backgroundColor: isActive ? color.withOpacity(0.15) : theme.surface,
               foregroundColor: color,
-              side: BorderSide(color: color.withOpacity(0.5)),
+              side: BorderSide(color: color.withOpacity(0.6)),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               minimumSize: Size.zero,
             ),
             onPressed: onStart,
             child: Text(
               resultLabel != null && !isActive ? 'Redo' : 'Measure',
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: theme.captionSize),
             ),
           ),
         ]),
 
-        // Progress bar while active
         if (isActive && progress != null) ...[
           const SizedBox(height: 10),
           AnimatedBuilder(
@@ -313,7 +313,7 @@ class _PhaseCard extends StatelessWidget {
               children: [
                 LinearProgressIndicator(
                   value: progress!.value,
-                  backgroundColor: Colors.white12,
+                  backgroundColor: theme.border,
                   valueColor: AlwaysStoppedAnimation(color),
                   minHeight: 6,
                 ),
@@ -322,11 +322,11 @@ class _PhaseCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('${(5 - (progress!.value * 5)).ceil()}s',
-                        style: TextStyle(color: color, fontSize: 13,
+                        style: TextStyle(color: color, fontSize: theme.bodySize,
                             fontFamily: 'monospace')),
                     Text('Live: ${liveMag.toStringAsFixed(4)} m/s²',
-                        style: TextStyle(color: color.withOpacity(0.7),
-                            fontSize: 12, fontFamily: 'monospace')),
+                        style: TextStyle(color: color.withOpacity(0.8),
+                            fontSize: theme.captionSize, fontFamily: 'monospace')),
                   ],
                 ),
               ],
@@ -334,14 +334,13 @@ class _PhaseCard extends StatelessWidget {
           ),
         ],
 
-        // Result
         if (resultLabel != null && !isActive) ...[
           const SizedBox(height: 8),
           Row(children: [
             Icon(Icons.check_circle, color: color, size: 14),
             const SizedBox(width: 6),
             Text(resultLabel!, style: TextStyle(
-                color: color.withOpacity(0.8), fontSize: 12,
+                color: color, fontSize: theme.captionSize,
                 fontFamily: 'monospace')),
           ]),
         ],

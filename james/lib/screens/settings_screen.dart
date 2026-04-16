@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_settings.dart';
 import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 import 'calibration_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _theme = AppTheme();
   late TextEditingController _threshold, _cooldown, _whatGuarding;
   late TextEditingController _ntfyUrl, _ntfyToken;
   late TextEditingController _telegramToken, _telegramChatId;
@@ -22,16 +24,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     final s = widget.settings;
-    _threshold = TextEditingController(text: s.threshold.toString());
-    _cooldown = TextEditingController(text: s.cooldownSeconds.toString());
+    _threshold    = TextEditingController(text: s.threshold.toString());
+    _cooldown     = TextEditingController(text: s.cooldownSeconds.toString());
     _whatGuarding = TextEditingController(text: s.whatGuarding);
-    _ntfyUrl = TextEditingController(text: s.ntfyUrl);
-    _ntfyToken = TextEditingController(text: s.ntfyToken);
-    _telegramToken = TextEditingController(text: s.telegramToken);
+    _ntfyUrl      = TextEditingController(text: s.ntfyUrl);
+    _ntfyToken    = TextEditingController(text: s.ntfyToken);
+    _telegramToken  = TextEditingController(text: s.telegramToken);
     _telegramChatId = TextEditingController(text: s.telegramChatId);
-    _webhookUrl = TextEditingController(text: s.webhookUrl);
+    _webhookUrl   = TextEditingController(text: s.webhookUrl);
     _channel = s.notificationChannel;
-    _lang = s.language;
+    _lang    = s.language;
   }
 
   @override
@@ -43,16 +45,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _save() async {
     final s = widget.settings;
-    s.threshold = double.tryParse(_threshold.text) ?? s.threshold;
+    s.threshold       = double.tryParse(_threshold.text) ?? s.threshold;
     s.cooldownSeconds = int.tryParse(_cooldown.text) ?? s.cooldownSeconds;
-    s.whatGuarding = _whatGuarding.text;
+    s.whatGuarding    = _whatGuarding.text;
     s.notificationChannel = _channel;
-    s.ntfyUrl = _ntfyUrl.text;
-    s.ntfyToken = _ntfyToken.text;
-    s.telegramToken = _telegramToken.text;
-    s.telegramChatId = _telegramChatId.text;
-    s.webhookUrl = _webhookUrl.text;
-    s.language = _lang;
+    s.ntfyUrl         = _ntfyUrl.text;
+    s.ntfyToken       = _ntfyToken.text;
+    s.telegramToken   = _telegramToken.text;
+    s.telegramChatId  = _telegramChatId.text;
+    s.webhookUrl      = _webhookUrl.text;
+    s.language        = _lang;
     await s.save();
     await TranslationService.load(_lang);
     if (mounted) Navigator.pop(context);
@@ -71,10 +73,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1a1a3e),
-        title: const Text('Battery Optimization',
-            style: TextStyle(color: Colors.orangeAccent)),
-        content: const SingleChildScrollView(
+        backgroundColor: _theme.surface,
+        title: Text('Battery Optimization',
+            style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize + 2)),
+        content: SingleChildScrollView(
           child: Text(
             'For James to work reliably with the screen off, '
             'disable battery optimization for this app.\n\n'
@@ -86,13 +88,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             '2. App power management\n'
             '3. Add James to "Never sleeping apps"\n\n'
             'Without this, Samsung may stop James after a few minutes.',
-            style: TextStyle(color: Colors.white70, height: 1.6),
+            style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize, height: 1.6),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
+            child: Text('OK', style: TextStyle(color: _theme.accent, fontSize: _theme.bodySize)),
           ),
         ],
       ),
@@ -106,15 +108,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final channels = ['ntfy', 'telegram', 'webhook'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1e),
+      backgroundColor: _theme.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        title: Text(t('settings'), style: const TextStyle(color: Colors.white70)),
-        iconTheme: const IconThemeData(color: Colors.white54),
+        backgroundColor: _theme.background,
+        elevation: 0,
+        title: Text(t('settings'),
+            style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize + 2)),
+        iconTheme: IconThemeData(color: _theme.inkMedium),
         actions: [
-          TextButton(onPressed: _save,
-              child: Text(t('save'),
-                  style: const TextStyle(color: Colors.blueAccent))),
+          TextButton(
+            onPressed: _save,
+            child: Text(t('save'),
+                style: TextStyle(color: _theme.accent, fontSize: _theme.bodySize,
+                    fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
       body: ListView(
@@ -128,18 +135,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.1),
+                color: const Color(0xFFFFF3CD),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orangeAccent.withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFFD4A017).withOpacity(0.6)),
               ),
-              child: const Row(children: [
-                Icon(Icons.battery_alert, color: Colors.orangeAccent, size: 18),
-                SizedBox(width: 10),
+              child: Row(children: [
+                const Icon(Icons.battery_alert, color: Color(0xFF8B6000), size: 18),
+                const SizedBox(width: 10),
                 Expanded(child: Text(
                   'Disable battery optimization for reliable background operation',
-                  style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                  style: TextStyle(color: _theme.inkMedium, fontSize: _theme.captionSize),
                 )),
-                Icon(Icons.chevron_right, color: Colors.orangeAccent, size: 18),
+                Icon(Icons.chevron_right, color: _theme.inkLight, size: 18),
               ]),
             ),
           ),
@@ -147,27 +154,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _section('General'),
           _field(t('what_guarding'), _whatGuarding, hint: t('what_guarding_hint')),
 
-          // Threshold row with Calibrate button
           _label(t('threshold')),
           Row(children: [
             Expanded(
               child: TextField(
                 controller: _threshold,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white70),
+                style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
                 decoration: _inputDecoration(),
               ),
             ),
             const SizedBox(width: 10),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                foregroundColor: Colors.blueAccent,
-                side: const BorderSide(color: Colors.blueAccent, width: 1),
+                backgroundColor: _theme.surface,
+                foregroundColor: _theme.accent,
+                side: BorderSide(color: _theme.accent, width: 1),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
-              icon: const Icon(Icons.tune, size: 16),
-              label: const Text('Calibrate', style: TextStyle(fontSize: 13)),
+              icon: Icon(Icons.tune, size: _theme.captionSize + 2),
+              label: Text('Calibrate', style: TextStyle(fontSize: _theme.captionSize + 1)),
               onPressed: _openCalibrator,
             ),
           ]),
@@ -175,11 +181,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           _field(t('cooldown'), _cooldown, keyboard: TextInputType.number),
           const SizedBox(height: 8),
+
           _label(t('language')),
           DropdownButton<String>(
             value: _lang,
-            dropdownColor: const Color(0xFF1a1a3e),
-            style: const TextStyle(color: Colors.white70),
+            dropdownColor: _theme.surface,
+            style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
             isExpanded: true,
             items: langs.map((l) => DropdownMenuItem(value: l,
                 child: Text(l))).toList(),
@@ -190,11 +197,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _section(t('notification_channel')),
           DropdownButton<String>(
             value: _channel,
-            dropdownColor: const Color(0xFF1a1a3e),
-            style: const TextStyle(color: Colors.white70),
+            dropdownColor: _theme.surface,
+            style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
             isExpanded: true,
             items: channels.map((c) => DropdownMenuItem(
-              value: c, child: Text(t('channel_$c')))).toList(),
+                value: c, child: Text(t('channel_$c')))).toList(),
             onChanged: (v) => setState(() => _channel = v!),
           ),
           const SizedBox(height: 8),
@@ -217,26 +224,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _section(String title) => Padding(
     padding: const EdgeInsets.only(top: 16, bottom: 6),
     child: Text(title.toUpperCase(),
-        style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 1.5)),
+        style: TextStyle(color: _theme.inkFaint, fontSize: _theme.captionSize,
+            letterSpacing: 1.5)),
   );
 
   Widget _label(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
-    child: Text(text, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+    child: Text(text, style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize)),
   );
 
   InputDecoration _inputDecoration({String? hint}) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Colors.white24),
+    hintStyle: TextStyle(color: _theme.inkFaint),
     filled: true,
-    fillColor: Colors.white.withOpacity(0.05),
+    fillColor: _theme.surface,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(6),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+      borderSide: BorderSide(color: _theme.border),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(6),
-      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+      borderSide: BorderSide(color: _theme.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: BorderSide(color: _theme.accent, width: 1.5),
     ),
   );
 
@@ -249,7 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         controller: ctrl,
         obscureText: obscure,
         keyboardType: keyboard,
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
         decoration: _inputDecoration(hint: hint),
       ),
     ]),

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 
 class SensorScreen extends StatefulWidget {
   const SensorScreen({super.key});
@@ -11,6 +12,7 @@ class SensorScreen extends StatefulWidget {
 }
 
 class _SensorScreenState extends State<SensorScreen> {
+  final _theme = AppTheme();
   final List<StreamSubscription> _subs = [];
   double _accelMag = 0, _userAccelMag = 0, _gyroMag = 0;
   double _accelX = 0, _accelY = 0, _accelZ = 0;
@@ -52,17 +54,18 @@ class _SensorScreenState extends State<SensorScreen> {
   Widget build(BuildContext context) {
     final t = TranslationService.t;
     return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1e),
+      backgroundColor: _theme.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: _theme.background,
         elevation: 0,
         title: Text(t('sensor_explorer'),
-            style: const TextStyle(color: Colors.white70)),
-        iconTheme: const IconThemeData(color: Colors.white54),
+            style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize + 2)),
+        iconTheme: IconThemeData(color: _theme.inkMedium),
         actions: [
           TextButton(
             onPressed: () => setState(() => _maxUserAccel = 0),
-            child: const Text('Reset max', style: TextStyle(color: Colors.white38, fontSize: 12)),
+            child: Text('Reset max',
+                style: TextStyle(color: _theme.inkFaint, fontSize: _theme.captionSize)),
           ),
         ],
       ),
@@ -72,40 +75,45 @@ class _SensorScreenState extends State<SensorScreen> {
           _SensorCard(
             title: 'linear_acceleration (UserAccelerometer)',
             subtitle: 'Gravity filtered — used for motion detection',
-            color: Colors.greenAccent,
+            accentColor: _theme.accent,
             magnitude: _userAccelMag,
             x: _userX, y: _userY, z: _userZ,
             extra: 'Max: ${_maxUserAccel.toStringAsFixed(3)} m/s²',
+            theme: _theme,
           ),
           const SizedBox(height: 12),
           _SensorCard(
             title: 'Accelerometer (raw)',
             subtitle: 'Includes gravity (~9.8 m/s² at rest)',
-            color: Colors.blueAccent,
+            accentColor: const Color(0xFF1565C0),
             magnitude: _accelMag,
             x: _accelX, y: _accelY, z: _accelZ,
+            theme: _theme,
           ),
           const SizedBox(height: 12),
           _SensorCard(
             title: 'Gyroscope',
             subtitle: 'Rotation speed (rad/s)',
-            color: Colors.purpleAccent,
+            accentColor: const Color(0xFF6A1B9A),
             magnitude: _gyroMag,
             x: _gyroX, y: _gyroY, z: _gyroZ,
+            theme: _theme,
           ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: _theme.surface,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _theme.border),
             ),
-            child: const Text(
+            child: Text(
               'Tip: Shake the device to see peak values.\n'
               'Observe magnitude at rest (should be < 0.01).\n'
               'Set threshold between resting noise and lightest expected movement.\n'
               'Recommended: 0.25 m/s² (tested on Samsung tablets).',
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+              style: TextStyle(color: _theme.inkMedium, fontSize: _theme.captionSize,
+                  height: 1.6),
             ),
           ),
         ],
@@ -116,13 +124,14 @@ class _SensorScreenState extends State<SensorScreen> {
 
 class _SensorCard extends StatelessWidget {
   final String title, subtitle;
-  final Color color;
+  final Color accentColor;
   final double magnitude, x, y, z;
   final String? extra;
+  final AppTheme theme;
   const _SensorCard({
-    required this.title, required this.subtitle, required this.color,
+    required this.title, required this.subtitle, required this.accentColor,
     required this.magnitude, required this.x, required this.y, required this.z,
-    this.extra,
+    required this.theme, this.extra,
   });
 
   @override
@@ -130,28 +139,30 @@ class _SensorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: theme.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: accentColor.withOpacity(0.4), width: 1.5),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
-        Text(subtitle, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        Text(title, style: TextStyle(color: accentColor, fontSize: theme.captionSize + 1,
+            fontWeight: FontWeight.bold)),
+        Text(subtitle, style: TextStyle(color: theme.inkFaint, fontSize: theme.captionSize)),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: _axis('X', x, color)),
-          Expanded(child: _axis('Y', y, color)),
-          Expanded(child: _axis('Z', z, color)),
+          Expanded(child: _axis('X', x, accentColor)),
+          Expanded(child: _axis('Y', y, accentColor)),
+          Expanded(child: _axis('Z', z, accentColor)),
         ]),
         const SizedBox(height: 6),
         Row(children: [
-          const Text('|mag| = ', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          Text('|mag| = ', style: TextStyle(color: theme.inkFaint, fontSize: theme.captionSize)),
           Text(magnitude.toStringAsFixed(4),
-              style: TextStyle(color: color, fontSize: 16, fontFamily: 'monospace',
-                  fontWeight: FontWeight.bold)),
+              style: TextStyle(color: accentColor, fontSize: theme.bodySize + 3,
+                  fontFamily: 'monospace', fontWeight: FontWeight.bold)),
           if (extra != null) ...[
             const SizedBox(width: 16),
-            Text(extra!, style: TextStyle(color: color.withOpacity(0.6), fontSize: 12)),
+            Text(extra!, style: TextStyle(color: accentColor.withOpacity(0.7),
+                fontSize: theme.captionSize)),
           ],
         ]),
       ]),
@@ -159,8 +170,9 @@ class _SensorCard extends StatelessWidget {
   }
 
   Widget _axis(String label, double val, Color color) => Column(children: [
-    Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+    Text(label, style: TextStyle(color: AppTheme().inkFaint, fontSize: 11)),
     Text(val.toStringAsFixed(3),
-        style: TextStyle(color: color.withOpacity(0.8), fontSize: 12, fontFamily: 'monospace')),
+        style: TextStyle(color: color.withOpacity(0.8), fontSize: 12,
+            fontFamily: 'monospace')),
   ]);
 }
