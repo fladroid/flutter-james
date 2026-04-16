@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>James — Privacy Policy</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #1a1a1a; line-height: 1.7; background: #faf7f2; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid #2d5a27; padding-bottom: 8px; color: #2d5a27; }
+  h2 { font-size: 1.1em; margin-top: 28px; color: #2d5a27; }
+  p, li { font-size: 0.97em; }
+  footer { margin-top: 48px; font-size: 0.85em; color: #888; border-top: 1px solid #ddd; padding-top: 12px; }
+</style>
+</head>
+<body>
+<h1>James — Privacy Policy</h1>
+<p><strong>Effective date:</strong> April 16, 2026</p>
+
+<h2>Overview</h2>
+<p>James is a motion guard application for Android. It monitors device movement using the built-in accelerometer and sends push notifications when motion is detected. This policy explains what data James accesses and how it is handled.</p>
+
+<h2>Data collected</h2>
+<p>James does <strong>not</strong> collect, store, or transmit any personal data. Specifically:</p>
+<ul>
+  <li><strong>Sensor data</strong> — accelerometer readings are processed in real time on the device. No sensor data is stored or sent anywhere.</li>
+  <li><strong>Notification configuration</strong> — the ntfy URL, token, Telegram token, or webhook URL you enter are stored locally on your device using Android SharedPreferences. This data never leaves your device except to reach the notification endpoint you configure yourself.</li>
+  <li><strong>Event log</strong> — armed/disarmed/intrusion events are kept in memory only and are cleared when the app is closed. Nothing is written to disk.</li>
+</ul>
+
+<h2>Internet access</h2>
+<p>James uses the internet solely to send push notifications to the endpoint you configure (ntfy, Telegram, or webhook). No data is sent to the developer or any third party.</p>
+
+<h2>Permissions</h2>
+<ul>
+  <li><strong>INTERNET</strong> — to send push notifications to your configured endpoint.</li>
+  <li><strong>FOREGROUND_SERVICE / WAKE_LOCK</strong> — to keep monitoring active with the screen off.</li>
+  <li><strong>RECEIVE_BOOT_COMPLETED</strong> — to optionally restart monitoring after device reboot.</li>
+  <li><strong>POST_NOTIFICATIONS</strong> — to show a persistent status notification while armed.</li>
+</ul>
+
+<h2>Third-party services</h2>
+<p>James does not integrate with any analytics, advertising, or tracking service. The only external communication is the notification endpoint you configure yourself.</p>
+
+<h2>Children</h2>
+<p>James is not directed at children under 13 and does not knowingly collect any data from children.</p>
+
+<h2>Contact</h2>
+<p>If you have any questions about this privacy policy, contact: <a href="mailto:fladroid@gmail.com">fladroid@gmail.com</a></p>
+
+<footer>Fladroid &mdash; fladroid@gmail.com &mdash; github.com/fladroid</footer>
+</body>
+</html>
