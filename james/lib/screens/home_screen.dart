@@ -8,6 +8,7 @@ import '../models/app_settings.dart';
 import '../models/event_log.dart';
 import '../services/notification_service.dart';
 import '../services/translation_service.dart';
+import '../services/app_theme.dart';
 import 'settings_screen.dart';
 import 'sensor_screen.dart';
 import 'calibration_screen.dart';
@@ -23,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _methodChannel = MethodChannel('com.fladroid.james/service');
+  final _theme = AppTheme();
 
   bool _armed = false;
   double _magnitude = 0.0;
@@ -58,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _arm() async {
     final s = widget.settings;
-    // Validate notification config before arming
     String configError = '';
     if (s.notificationChannel == 'ntfy' && s.ntfyUrl.isEmpty) {
       configError = 'ntfy URL is empty — configure in Settings';
@@ -73,7 +74,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    // Start keepalive ForegroundService (WakeLock)
     try {
       await _methodChannel.invokeMethod('startService');
       final prefs = await SharedPreferences.getInstance();
@@ -82,7 +82,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _showError('Service error: $e');
       return;
     }
-    // Start sensor monitoring in Flutter
     _sensorSub?.cancel();
     _sensorSub = userAccelerometerEventStream(
       samplingPeriod: const Duration(milliseconds: 500),
@@ -133,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
+        SnackBar(content: Text(msg), backgroundColor: _theme.destructive));
   }
 
   @override
@@ -149,20 +148,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final s = widget.settings;
     final t = TranslationService.t;
 
+    // Stanje boje pozadine — suptilna promjena, ne drastična
+    final bgColor = _armed
+        ? const Color(0xFFEEF5EE)   // blago zelenkasta kad je armed
+        : _theme.background;        // normalna krem kad je disarmed
+
     return Scaffold(
-      backgroundColor: _armed ? const Color(0xFF0a2e0a) : const Color(0xFF0a0a1e),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
+        backgroundColor: bgColor,
+        elevation: 0,
         title: Text('${t('app_title')} v1.2.8',
-            style: const TextStyle(color: Colors.white70, fontSize: 16)),
+            style: TextStyle(color: _theme.inkMedium, fontSize: 16)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.sensors, color: Colors.white54),
+            icon: Icon(Icons.sensors, color: _theme.inkLight),
             onPressed: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const SensorScreen())),
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white54),
+            icon: Icon(Icons.settings, color: _theme.inkLight),
             onPressed: () async {
               await Navigator.push(context,
                   MaterialPageRoute(builder: (_) => SettingsScreen(settings: s)));
@@ -181,58 +186,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: 200, height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _armed ? const Color(0xFF1a5c1a) : const Color(0xFF1a1a3e),
+                color: _armed
+                    ? const Color(0xFFD6EDD6)   // svjetlo zelena površina
+                    : _theme.surface,
                 border: Border.all(
-                    color: _armed ? Colors.greenAccent : Colors.blueAccent,
+                    color: _armed ? _theme.accent : _theme.border,
                     width: 3),
                 boxShadow: [BoxShadow(
-                  color: (_armed ? Colors.greenAccent : Colors.blueAccent)
-                      .withOpacity(0.3),
-                  blurRadius: 30, spreadRadius: 5,
+                  color: (_armed ? _theme.accent : _theme.inkFaint)
+                      .withOpacity(0.15),
+                  blurRadius: 20, spreadRadius: 3,
                 )],
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(_armed ? Icons.lock : Icons.lock_open,
-                    color: _armed ? Colors.greenAccent : Colors.blueAccent,
+                    color: _armed ? _theme.accent : _theme.inkMedium,
                     size: 48),
                 const SizedBox(height: 8),
                 Text(_armed ? t('armed') : t('disarmed'),
                     style: TextStyle(
-                      color: _armed ? Colors.greenAccent : Colors.blueAccent,
+                      color: _armed ? _theme.accent : _theme.inkMedium,
                       fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2,
                     )),
                 const SizedBox(height: 4),
                 Text(_armed ? t('disarm') : t('arm'),
-                    style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                    style: TextStyle(color: _theme.inkFaint, fontSize: 12)),
               ]),
             ),
           ),
         ),
         const SizedBox(height: 24),
         Text(t('live_magnitude'),
-            style: const TextStyle(color: Colors.white38, fontSize: 12)),
+            style: TextStyle(color: _theme.inkFaint, fontSize: 12)),
         const SizedBox(height: 4),
         Text('${_magnitude.toStringAsFixed(3)} m/s²',
             style: TextStyle(
-              color: _magnitude > s.threshold ? Colors.redAccent : Colors.white70,
+              color: _magnitude > s.threshold ? _theme.destructive : _theme.inkMedium,
               fontSize: 20, fontFamily: 'monospace',
             )),
         if (s.whatGuarding.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(t('guarding_label', params: {'what': s.whatGuarding}),
-              style: const TextStyle(color: Colors.white38, fontSize: 13)),
+              style: TextStyle(color: _theme.inkFaint, fontSize: 13)),
         ],
         if (_armed)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.circle, color: Colors.greenAccent, size: 8),
+              Icon(Icons.circle, color: _theme.accent, size: 8),
               const SizedBox(width: 6),
-              const Text('Active — WakeLock on',
-                  style: TextStyle(color: Colors.white38, fontSize: 11)),
+              Text('Active — WakeLock on',
+                  style: TextStyle(color: _theme.inkFaint, fontSize: 11)),
             ]),
           ),
-        // Not calibrated warning
         if (!s.isCalibrated)
           GestureDetector(
             onTap: () async {
@@ -245,18 +251,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.12),
+                color: const Color(0xFFFFF3CD),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orangeAccent.withOpacity(0.5)),
+                border: Border.all(color: const Color(0xFFD4A017).withOpacity(0.6)),
               ),
-              child: const Row(children: [
-                Icon(Icons.tune, color: Colors.orangeAccent, size: 16),
-                SizedBox(width: 8),
+              child: Row(children: [
+                const Icon(Icons.tune, color: Color(0xFF8B6000), size: 16),
+                const SizedBox(width: 8),
                 Expanded(child: Text(
                   'Device not calibrated — using default 0.25 m/s². Tap to calibrate.',
-                  style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                  style: TextStyle(color: _theme.inkMedium, fontSize: 12),
                 )),
-                Icon(Icons.chevron_right, color: Colors.orangeAccent, size: 16),
+                Icon(Icons.chevron_right, color: _theme.inkLight, size: 16),
               ]),
             ),
           ),
@@ -264,11 +270,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         Expanded(
           child: _events.isEmpty
               ? Center(child: Text(t('events_empty'),
-                  style: const TextStyle(color: Colors.white24)))
+                  style: TextStyle(color: _theme.inkFaint)))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _events.length,
-                  itemBuilder: (_, i) => _EventTile(event: _events[i]),
+                  itemBuilder: (_, i) => _EventTile(event: _events[i], theme: _theme),
                 ),
         ),
       ]),
@@ -278,7 +284,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
 class _EventTile extends StatelessWidget {
   final EventEntry event;
-  const _EventTile({required this.event});
+  final AppTheme theme;
+  const _EventTile({required this.event, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -286,11 +293,11 @@ class _EventTile extends StatelessWidget {
     IconData icon; Color color; String label;
     switch (event.type) {
       case EventType.armed:
-        icon = Icons.lock; color = Colors.greenAccent; label = t('armed_msg');
+        icon = Icons.lock; color = theme.accent; label = t('armed_msg');
       case EventType.disarmed:
-        icon = Icons.lock_open; color = Colors.blueAccent; label = t('disarmed_msg');
+        icon = Icons.lock_open; color = theme.inkMedium; label = t('disarmed_msg');
       case EventType.intrusion:
-        icon = Icons.warning_amber; color = Colors.redAccent;
+        icon = Icons.warning_amber; color = theme.destructive;
         label = '${t('intrusion_msg')} ${event.magnitude?.toStringAsFixed(2)} m/s²';
     }
     return Padding(
@@ -299,7 +306,7 @@ class _EventTile extends StatelessWidget {
         Icon(icon, color: color, size: 18),
         const SizedBox(width: 10),
         Text(event.timeString,
-            style: const TextStyle(color: Colors.white38, fontSize: 12,
+            style: TextStyle(color: theme.inkFaint, fontSize: 12,
                 fontFamily: 'monospace')),
         const SizedBox(width: 10),
         Expanded(child: Text(label,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/app_settings.dart';
 import 'screens/home_screen.dart';
 import 'services/translation_service.dart';
+import 'services/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ class JamesApp extends StatefulWidget {
 
 class _JamesAppState extends State<JamesApp> {
   late AppSettings _settings;
+  final _theme = AppTheme();
 
   @override
   void initState() {
@@ -37,10 +39,20 @@ class _JamesAppState extends State<JamesApp> {
     return MaterialApp(
       title: 'James',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.blueAccent,
-          secondary: Colors.greenAccent,
+      theme: ThemeData(
+        colorScheme: ColorScheme.light(
+          primary: _theme.accent,
+          secondary: _theme.accent,
+          surface: _theme.surface,
+        ),
+        scaffoldBackgroundColor: _theme.background,
+        appBarTheme: AppBarTheme(
+          backgroundColor: _theme.background,
+          foregroundColor: _theme.ink,
+          elevation: 0,
+        ),
+        textTheme: TextTheme(
+          bodyMedium: TextStyle(color: _theme.ink),
         ),
       ),
       home: HomeScreen(settings: _settings, onSettingsChanged: _reload),
