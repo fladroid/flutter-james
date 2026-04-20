@@ -60,18 +60,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _arm() async {
     final s = widget.settings;
-    String configError = '';
-    if (s.notificationChannel == 'ntfy' && s.ntfyUrl.isEmpty) {
-      configError = 'ntfy URL is empty — configure in Settings';
-    } else if (s.notificationChannel == 'telegram' &&
-        (s.telegramToken.isEmpty || s.telegramChatId.isEmpty)) {
-      configError = 'Telegram token or chat ID is empty — configure in Settings';
-    } else if (s.notificationChannel == 'webhook' && s.webhookUrl.isEmpty) {
-      configError = 'Webhook URL is empty — configure in Settings';
-    }
-    if (configError.isNotEmpty) {
-      _showError(configError);
-      return;
+    if (!s.testMode) {
+      String configError = '';
+      if (s.notificationChannel == 'ntfy' && s.ntfyUrl.isEmpty) {
+        configError = 'ntfy URL is empty — configure in Settings';
+      } else if (s.notificationChannel == 'telegram' &&
+          (s.telegramToken.isEmpty || s.telegramChatId.isEmpty)) {
+        configError = 'Telegram token or chat ID is empty — configure in Settings';
+      } else if (s.notificationChannel == 'webhook' && s.webhookUrl.isEmpty) {
+        configError = 'Webhook URL is empty — configure in Settings';
+      }
+      if (configError.isNotEmpty) {
+        _showError(configError);
+        return;
+      }
     }
 
     try {
@@ -89,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     setState(() => _armed = true);
     _addEvent(EventType.armed);
-    await NotificationService.sendArmed(s);
+    if (!s.testMode) await NotificationService.sendArmed(s);
   }
 
   Future<void> _disarm() async {
@@ -102,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } catch (_) {}
     setState(() => _armed = false);
     _addEvent(EventType.disarmed);
-    await NotificationService.sendDisarmed(widget.settings);
+    if (!widget.settings.testMode) await NotificationService.sendDisarmed(widget.settings);
   }
 
   void _onSensor(UserAccelerometerEvent e) {
@@ -115,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (_lastAlert == null || now.difference(_lastAlert!) >= cooldown) {
         _lastAlert = now;
         _addEvent(EventType.intrusion, magnitude: mag);
-        NotificationService.sendIntrusion(s, mag);
+        if (!s.testMode) NotificationService.sendIntrusion(s, mag);
       }
     }
   }
@@ -237,6 +239,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(width: 6),
               Text('Active — WakeLock on',
                   style: TextStyle(color: _theme.inkFaint, fontSize: 11)),
+            ]),
+          ),
+        if (s.testMode)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F0FE),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF4A86D8).withOpacity(0.5)),
+            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.science_outlined, color: Color(0xFF2A5FAC), size: 15),
+              const SizedBox(width: 6),
+              Text('TEST MODE — notifications disabled',
+                  style: TextStyle(color: const Color(0xFF2A5FAC), fontSize: 11,
+                      fontWeight: FontWeight.w500)),
             ]),
           ),
         if (!s.isCalibrated)

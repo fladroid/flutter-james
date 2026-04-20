@@ -21,6 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _lang;
   late String _fontSize;
   late String _contrast;
+  late bool _testMode;
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _lang     = s.language;
     _fontSize = s.fontSize;
     _contrast = s.contrast;
+    _testMode = s.testMode;
   }
 
   @override
@@ -61,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     s.language        = _lang;
     s.fontSize        = _fontSize;
     s.contrast        = _contrast;
+    s.testMode        = _testMode;
     await s.save();
     await TranslationService.load(_lang);
     if (mounted) Navigator.pop(context);
@@ -229,6 +232,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(l))).toList(),
             onChanged: (v) => setState(() => _lang = v!),
           ),
+
+          // ── TEST MODE ────────────────────────────────────────
+          _section('Test mode'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Test mode', style: TextStyle(color: _theme.inkMedium, fontSize: _theme.bodySize)),
+                  const SizedBox(height: 2),
+                  Text('Arm/disarm works, no notifications sent',
+                      style: TextStyle(color: _theme.inkFaint, fontSize: _theme.captionSize)),
+                ],
+              )),
+              Switch(
+                value: _testMode,
+                activeColor: _theme.accent,
+                onChanged: (v) => setState(() => _testMode = v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
           // ── NOTIFICATION ─────────────────────────────────────
           const SizedBox(height: 16),

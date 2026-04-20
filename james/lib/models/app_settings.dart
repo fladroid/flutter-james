@@ -14,6 +14,7 @@ class AppSettings {
   bool isCalibrated;
   String fontSize;    // 'small' | 'medium' | 'large'
   String contrast;    // 'normal' | 'high'
+  bool testMode;
 
   AppSettings({
     this.threshold = 0.25,
@@ -29,6 +30,7 @@ class AppSettings {
     this.isCalibrated = false,
     this.fontSize = 'medium',
     this.contrast = 'normal',
+    this.testMode = false,
   });
 
   static Future<AppSettings> load() async {
@@ -47,6 +49,7 @@ class AppSettings {
       isCalibrated: p.getBool('is_calibrated') ?? false,
       fontSize: p.getString('font_size') ?? 'medium',
       contrast: p.getString('contrast') ?? 'normal',
+      testMode: p.getBool('test_mode') ?? false,
     );
   }
 
@@ -65,5 +68,6 @@ class AppSettings {
     await p.setBool('is_calibrated', isCalibrated);
     await p.setString('font_size', fontSize);
     await p.setString('contrast', contrast);
+    await p.setBool('test_mode', testMode);
   }
 }

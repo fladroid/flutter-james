@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         applicationId = "com.fladroid.james"
-        minSdk = 33
+        minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
