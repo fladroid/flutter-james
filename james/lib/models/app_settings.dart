@@ -12,9 +12,16 @@ class AppSettings {
   String webhookUrl;
   String language;
   bool isCalibrated;
-  String fontSize;    // 'small' | 'medium' | 'large'
-  String contrast;    // 'normal' | 'high'
+  String fontSize;           // 'small' | 'medium' | 'large'
+  String contrast;           // 'normal' | 'high'
   bool testMode;
+  String sensitivityPreset;  // 'low' | 'medium' | 'high' | 'custom'
+
+  static const Map<String, double> presetValues = {
+    'low':    0.50,
+    'medium': 0.25,
+    'high':   0.12,
+  };
 
   AppSettings({
     this.threshold = 0.25,
@@ -31,6 +38,7 @@ class AppSettings {
     this.fontSize = 'medium',
     this.contrast = 'normal',
     this.testMode = false,
+    this.sensitivityPreset = 'medium',
   });
 
   static Future<AppSettings> load() async {
@@ -50,6 +58,7 @@ class AppSettings {
       fontSize: p.getString('font_size') ?? 'medium',
       contrast: p.getString('contrast') ?? 'normal',
       testMode: p.getBool('test_mode') ?? false,
+      sensitivityPreset: p.getString('sensitivity_preset') ?? 'medium',
     );
   }
 
@@ -69,5 +78,6 @@ class AppSettings {
     await p.setString('font_size', fontSize);
     await p.setString('contrast', contrast);
     await p.setBool('test_mode', testMode);
+    await p.setString('sensitivity_preset', sensitivityPreset);
   }
 }

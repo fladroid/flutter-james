@@ -13,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _theme = AppTheme();
-  late TextEditingController _threshold, _cooldown, _whatGuarding;
+  late TextEditingController _customThreshold, _cooldown, _whatGuarding;
   late TextEditingController _ntfyUrl, _ntfyToken;
   late TextEditingController _telegramToken, _telegramChatId;
   late TextEditingController _webhookUrl;
@@ -22,48 +22,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _fontSize;
   late String _contrast;
   late bool _testMode;
+  late String _preset; // 'low' | 'medium' | 'high' | 'custom'
 
   @override
   void initState() {
     super.initState();
     final s = widget.settings;
-    _threshold    = TextEditingController(text: s.threshold.toString());
-    _cooldown     = TextEditingController(text: s.cooldownSeconds.toString());
-    _whatGuarding = TextEditingController(text: s.whatGuarding);
-    _ntfyUrl      = TextEditingController(text: s.ntfyUrl);
-    _ntfyToken    = TextEditingController(text: s.ntfyToken);
-    _telegramToken  = TextEditingController(text: s.telegramToken);
-    _telegramChatId = TextEditingController(text: s.telegramChatId);
-    _webhookUrl   = TextEditingController(text: s.webhookUrl);
+    _customThreshold = TextEditingController(text: s.threshold.toString());
+    _cooldown        = TextEditingController(text: s.cooldownSeconds.toString());
+    _whatGuarding    = TextEditingController(text: s.whatGuarding);
+    _ntfyUrl         = TextEditingController(text: s.ntfyUrl);
+    _ntfyToken       = TextEditingController(text: s.ntfyToken);
+    _telegramToken   = TextEditingController(text: s.telegramToken);
+    _telegramChatId  = TextEditingController(text: s.telegramChatId);
+    _webhookUrl      = TextEditingController(text: s.webhookUrl);
     _channel  = s.notificationChannel;
     _lang     = s.language;
     _fontSize = s.fontSize;
     _contrast = s.contrast;
     _testMode = s.testMode;
+    _preset   = s.sensitivityPreset;
   }
 
   @override
   void dispose() {
-    for (final c in [_threshold, _cooldown, _whatGuarding, _ntfyUrl,
+    for (final c in [_customThreshold, _cooldown, _whatGuarding, _ntfyUrl,
         _ntfyToken, _telegramToken, _telegramChatId, _webhookUrl]) c.dispose();
     super.dispose();
   }
 
+  double get _effectiveThreshold {
+    if (_preset == 'custom') {
+      return double.tryParse(_customThreshold.text) ?? 0.25;
+    }
+    return AppSettings.presetValues[_preset] ?? 0.25;
+  }
+
   Future<void> _save() async {
     final s = widget.settings;
-    s.threshold       = double.tryParse(_threshold.text) ?? s.threshold;
-    s.cooldownSeconds = int.tryParse(_cooldown.text) ?? s.cooldownSeconds;
-    s.whatGuarding    = _whatGuarding.text;
+    s.threshold           = _effectiveThreshold;
+    s.sensitivityPreset   = _preset;
+    s.cooldownSeconds     = int.tryParse(_cooldown.text) ?? s.cooldownSeconds;
+    s.whatGuarding        = _whatGuarding.text;
     s.notificationChannel = _channel;
-    s.ntfyUrl         = _ntfyUrl.text;
-    s.ntfyToken       = _ntfyToken.text;
-    s.telegramToken   = _telegramToken.text;
-    s.telegramChatId  = _telegramChatId.text;
-    s.webhookUrl      = _webhookUrl.text;
-    s.language        = _lang;
-    s.fontSize        = _fontSize;
-    s.contrast        = _contrast;
-    s.testMode        = _testMode;
+    s.ntfyUrl             = _ntfyUrl.text;
+    s.ntfyToken           = _ntfyToken.text;
+    s.telegramToken       = _telegramToken.text;
+    s.telegramChatId      = _telegramChatId.text;
+    s.webhookUrl          = _webhookUrl.text;
+    s.language            = _lang;
+    s.fontSize            = _fontSize;
+    s.contrast            = _contrast;
+    s.testMode            = _testMode;
     await s.save();
     await TranslationService.load(_lang);
     if (mounted) Navigator.pop(context);
@@ -74,7 +84,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         MaterialPageRoute(builder: (_) =>
             CalibrationScreen(settings: widget.settings)));
     if (result != null) {
-      setState(() => _threshold.text = result.toStringAsFixed(2));
+      setState(() {
+        _preset = 'custom';
+        _customThreshold.text = result.toStringAsFixed(2);
+      });
     }
   }
 
@@ -194,30 +207,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _section('General'),
           _field(t('what_guarding'), _whatGuarding, hint: t('what_guarding_hint')),
 
-          _label(t('threshold')),
-          Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _threshold,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
-                decoration: _inputDecoration(),
-              ),
+          // Sensitivity preset
+          _label(t('sensitivity_preset')),
+          const SizedBox(height: 8),
+          _PresetSelector(
+            selected: _preset,
+            theme: _theme,
+            t: t,
+            onChanged: (v) => setState(() => _preset = v),
+          ),
+          const SizedBox(height: 10),
+
+          // Custom threshold — vidljiv samo kad je preset = custom
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: _preset == 'custom'
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            firstChild: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _label(t('threshold')),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _customThreshold,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(color: _theme.ink, fontSize: _theme.bodySize),
+                      decoration: _inputDecoration(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _theme.surface,
+                      foregroundColor: _theme.accent,
+                      side: BorderSide(color: _theme.accent, width: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    ),
+                    icon: Icon(Icons.tune, size: _theme.captionSize + 2),
+                    label: Text('Calibrate', style: TextStyle(fontSize: _theme.captionSize + 1)),
+                    onPressed: _openCalibrator,
+                  ),
+                ]),
+                const SizedBox(height: 12),
+              ],
             ),
-            const SizedBox(width: 10),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _theme.surface,
-                foregroundColor: _theme.accent,
-                side: BorderSide(color: _theme.accent, width: 1),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              ),
-              icon: Icon(Icons.tune, size: _theme.captionSize + 2),
-              label: Text('Calibrate', style: TextStyle(fontSize: _theme.captionSize + 1)),
-              onPressed: _openCalibrator,
-            ),
-          ]),
-          const SizedBox(height: 12),
+            secondChild: const SizedBox.shrink(),
+          ),
 
           _field(t('cooldown'), _cooldown, keyboard: TextInputType.number),
           const SizedBox(height: 8),
@@ -332,7 +369,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 }
 
-// Segmented row widget — tri ili dva dugmeta kao toggle grupa
+// ── Preset selector widget ───────────────────────────────────────────────────
+class _PresetSelector extends StatelessWidget {
+  final String selected;
+  final AppTheme theme;
+  final String Function(String) t;
+  final void Function(String) onChanged;
+
+  const _PresetSelector({
+    required this.selected,
+    required this.theme,
+    required this.t,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final presets = [
+      _PresetOption('low',    Icons.shield_outlined,      t('preset_low'),    t('preset_low_hint'),    '0.50 m/s²'),
+      _PresetOption('medium', Icons.shield,                t('preset_medium'), t('preset_medium_hint'), '0.25 m/s²'),
+      _PresetOption('high',   Icons.security,              t('preset_high'),   t('preset_high_hint'),   '0.12 m/s²'),
+      _PresetOption('custom', Icons.tune,                  t('preset_custom'), t('preset_custom_hint'), ''),
+    ];
+
+    return Column(
+      children: presets.map((p) {
+        final isSelected = selected == p.key;
+        return GestureDetector(
+          onTap: () => onChanged(p.key),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? theme.accent.withOpacity(0.08)
+                  : theme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? theme.accent : theme.border,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(children: [
+              Icon(p.icon,
+                  color: isSelected ? theme.accent : theme.inkLight,
+                  size: 22),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text(p.label,
+                        style: TextStyle(
+                          color: isSelected ? theme.accent : theme.inkMedium,
+                          fontSize: theme.bodySize,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        )),
+                    if (p.value.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(p.value,
+                          style: TextStyle(
+                            color: theme.inkFaint,
+                            fontSize: theme.captionSize,
+                            fontFamily: 'monospace',
+                          )),
+                    ],
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(p.hint,
+                      style: TextStyle(
+                        color: theme.inkFaint,
+                        fontSize: theme.captionSize,
+                      )),
+                ],
+              )),
+              if (isSelected)
+                Icon(Icons.check_circle, color: theme.accent, size: 20),
+            ]),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _PresetOption {
+  final String key;
+  final IconData icon;
+  final String label;
+  final String hint;
+  final String value;
+  const _PresetOption(this.key, this.icon, this.label, this.hint, this.value);
+}
+
+// ── Segmented row widget ─────────────────────────────────────────────────────
 class _SegmentedRow extends StatelessWidget {
   final List<String> options;
   final List<String> labels;

@@ -2,7 +2,7 @@ name: james
 description: "James — Motion Guard. Detects unauthorized device movement and sends alerts."
 publish_to: 'none'
 
-version: 1.2.10+13
+version: 1.3.0+14
 
 environment:
   sdk: ^3.11.4
